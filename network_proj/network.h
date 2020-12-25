@@ -35,4 +35,5 @@ void receive_ip(uchar *packet, uint len); //unpack
 int checksum();
 int verify_ip_checksum();
 int verify_ip_addr(ipaddr srcip);
+void send_transport_udp(uchar *payload, int len);
 #endif

@@ -46,7 +46,9 @@ uint assemble(uchar *frame, uchar *payload, int paylen)
 	printf("----assemble start!----\n");
 	//generating frame
 	uchar dst[6] = {0x41,0x42,0x43,0x44,0x45,0x46}; // 目标地址
+	printf("mac dst addr: 0x%x0x%x0x%x0x%x0x%x0x%x\n", dst[0], dst[1], dst[2], dst[3], dst[4], dst[5]);
 	uchar src[6] = {0x47,0x42,0x43,0x44,0x45,0x46}; // 出发地址
+	printf("mac src addr: 0x%x0x%x0x%x0x%x0x%x0x%x\n", src[0], src[1], src[2], src[3], src[4], src[5]);
 	uchar ptype[2] = {0x47,0x42}; // protocol type
 	memcpy(&frame[0], dst, 6);
 	memcpy(&frame[6], src, 6);
@@ -54,19 +56,19 @@ uint assemble(uchar *frame, uchar *payload, int paylen)
 	memcpy(&frame[14], payload, paylen);  
 	uint crc = crc32(frame, paylen + 14);  // 生成crc检验
 	memcpy(&frame[14+paylen], &crc, 4); 
-	printf("crc_send: %d\n", crc);
+	// printf("crc_send: %d\n", crc);
 	printf("----frame packed----\n");
 	// for(int i =0; i < 14+paylen+4; i++)
 	// 	printf("%d\n", frame[i]);
 	return 14 + paylen + 4; // 返回整个帧的长度
 }
 
-void send(FILE *sendfile, uchar *frame, uint len)
+void mac_sender(FILE *sendfile, uchar *frame, uint len)
 {	
 	// send frame as a file
 	fwrite(&len, sizeof(len), 1, sendfile); // length
 	fwrite(frame, sizeof(char), len, sendfile);
-	printf("----finish sending!----\n");
+	printf("-----finish sending frame!-----\n");
 }
 
 int checkCRC(uchar *crcGet, uchar *crcCal) 
@@ -117,18 +119,18 @@ int disassemble(FILE *sendfile, uchar *frame, uchar *payload)
 				{
 					if(i == 0)
 						printf("dest Addr: ");
-					printf("%d", frame[i]);
+					printf("%d ", frame[i]);
 				}
 				else if(i < 12)
 				{
 					if(i == 6)
 						printf("\nsrc Addr: ");
-					printf("%d", frame[i]);
+					printf("%d ", frame[i]);
 				} else if(i < 14) 
 				{
 					if(i == 12)
 						printf("\nProtocol Type: ");
-					printf("%d", frame[i]);
+					printf("%d ", frame[i]);
 				} else 
 				{
 					if(i == 14)
@@ -155,14 +157,15 @@ void sent_to_ip(){
 	fclose(receivefile);
 }
 
-void receive() 
+void mac_receiver() 
 {	
 	// 对写的传输帧的功能进行检测， receivefile是文件形式的帧
 	FILE *receivefile = fopen(ifile, "r");
 	uchar frame[1600];
 	uchar payload[1600];
-	disassemble(receivefile, frame, &payload[0]);
+	int len = disassemble(receivefile, frame, &payload[0]);
 	fclose(receivefile);
+	receive_ip(payload, len);
 }
 
 void process_and_send_frame(int len, uchar *buf){
@@ -173,6 +176,6 @@ void process_and_send_frame(int len, uchar *buf){
 		return;
 	}
 	FILE *writefile = fopen(ifile, "w"); //
-	send(writefile, frame, a);
+	mac_sender(writefile, frame, a);
 	fclose(writefile); //用文件的形式传输
 }

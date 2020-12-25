@@ -1,5 +1,6 @@
 #include "network.h"
 #include "mac.h"
+#include "transport.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -55,23 +56,28 @@ void send_ip(uchar *buf, ipaddr srcip, ipaddr dstip, uchar prtcl, uchar *payload
        参数：
        	payload是来自传输层的内容
     */
+    printf("-----ip layer receiving udp packet-----\n");
     iphdr header;
     uchar hdr[18];
-	hdr[0] = header.version = 4;
-	hdr[1] = header.ihl = 5; // no options
-	hdr[2] = header.tos = 0;
-	hdr[3] = header.tot_len = 32 + len; // len(header) + len(payload)
+	hdr[0] = header.version = 4;	printf("ip version:%d\n", hdr[0]);
+	hdr[1] = header.ihl = 5;  		printf("ip header length:%d\n", hdr[1]);
+	hdr[2] = header.tos = 0;		printf("ip type of service:%d\n", hdr[2]);
+	hdr[3] = header.tot_len = 32 + len; printf("ip total length:%d\n", hdr[3]);
 	hdr[4] = header.id = 0; // 可以发65535个不同id的datagram
-	hdr[5] = header.frag_offset = 0; 
+	hdr[5] = header.frag_offset = 0; printf("ip frag offset:%d\n", hdr[5]);
 	hdr[6] = header.ttl = 255;
 	hdr[7] = header.protocol = prtcl;
 	hdr[8] = header.checksum = 0;
 	header.saddr = srcip; // my ip;
 	header.daddr = dstip; // destination
 	hdr[9] = header.saddr.seg1;hdr[10] = header.saddr.seg2;hdr[11] = header.saddr.seg3;hdr[12] = header.saddr.seg4;
+	printf("src ip addr:%d.%d.%d.%d\n", hdr[9],hdr[10], hdr[11], hdr[12]);
 	hdr[13] = header.daddr.seg1;hdr[14] = header.daddr.seg2;hdr[15] = header.daddr.seg3;hdr[16] = header.daddr.seg4;
+	printf("dst ip addr:%d.%d.%d.%d\n", hdr[13], hdr[14], hdr[15], hdr[16]);
 	hdr[17] = header.more_frag = 0;
+	printf("ip more_frag: %d\n", hdr[17]);
 	if(32 + len > mtu){ //32= 2 ** 5
+		printf("-------segmentation start-------\n");
 		// exceeds, fragmentation
 		int cfrag = len / mtu + 1; //如果要分片，片个数
 		int i;
@@ -90,7 +96,7 @@ void send_ip(uchar *buf, ipaddr srcip, ipaddr dstip, uchar prtcl, uchar *payload
 		hdr[5] = header.frag_offset = i + 1;
 		hdr[17] = header.more_frag = 0;
 		hdr[8] = header.checksum = checksum(hdr, 18);
-		printf("cksm::%d\n", checksum(hdr, 18));
+		printf("cksm for ip header:%d\n", checksum(hdr, 18));
 		memcpy(&buf[0], hdr, 18);
 		memcpy(&buf[18], payload + mtu * (cfrag - 1), hdr[3]);
 		send_mac(18 + header.tot_len, buf);
@@ -98,13 +104,11 @@ void send_ip(uchar *buf, ipaddr srcip, ipaddr dstip, uchar prtcl, uchar *payload
 	else{
 		// ok to send
 		hdr[8] = header.checksum = checksum(hdr, 18);
-		printf("cksm::%d\n", hdr[8]);
+		printf("ip checksum: %d\n", hdr[8]);
 		memcpy(&buf[0], hdr, 18);
 		memcpy(&buf[18], payload, len); // payload 装入
-		printf("send_ip\n");
-		for(int i=0;i<18;i++){
-			printf("%d\n", hdr[i]);
-	}
+		printf("-----send ip info to mac layer-----\n");
+
 		// for(int i =0; i < 20; i ++)
 		// 	printf("%d\n", buf[i]); // 检查是不是都装入了
 		send_mac(18 + len, buf);
@@ -132,15 +136,17 @@ void receive_ip(uchar *packet, uint len){
 		hdr[i] = packet[i];
 
 	int cksm_data;
-	header.version = hdr[0]; header.ihl = hdr[1];
-	header.tos = hdr[2]; header.tot_len = hdr[3];
-	header.id = hdr[4]; header.frag_offset = hdr[5];
+	header.version = hdr[0]; header.ihl = hdr[1];printf("ip version:%d\n", hdr[0]);
+	header.tos = hdr[2]; header.tot_len = hdr[3];printf("ip header length:%d\n", hdr[1]);printf("ip type of service:%d\n", hdr[2]);
+	header.id = hdr[4]; header.frag_offset = hdr[5];printf("ip total length:%d\n", hdr[3]); printf("ip frag offset:%d\n", hdr[5]);
 	header.ttl = hdr[6]; header.protocol = hdr[7]; cksm_data = header.checksum = hdr[8];
 	header.saddr.seg1 = hdr[9]; header.saddr.seg2 = hdr[10]; header.saddr.seg3 = hdr[11]; header.saddr.seg4 = hdr[12];
 	header.daddr.seg1 = hdr[13]; header.daddr.seg2 = hdr[14]; header.daddr.seg3 = hdr[15]; header.daddr.seg4 = hdr[16];
 	header.more_frag = hdr[17];
 	uchar *payload = packet + 18; // transport layer要收到的整个内容
-	
+	printf("src ip addr:%d.%d.%d.%d\n", hdr[9],hdr[10], hdr[11], hdr[12]);
+	printf("dst ip addr:%d.%d.%d.%d\n", hdr[13], hdr[14], hdr[15], hdr[16]);
+	printf("ip more_frag: %d\n", hdr[17]);
 	hdr[8] = 0;
 	printf("receive_ip\n");
 	for(int i=0;i<18;i++){
@@ -156,8 +162,6 @@ void receive_ip(uchar *packet, uint len){
 
 	if(verify_ip_checksum(cksm_cal, cksm_data)) {
 		printf("ip layer check error\n");
-		// printf("cal:%d\n", cksm_cal);
-		// printf("data:%d\n", cksm_data);
 		return;
 	}
 
@@ -168,8 +172,9 @@ void receive_ip(uchar *packet, uint len){
 			1. 因为有分片，所以考虑用文件整合了所有碎片，再一起发
 			2. 如果没有分片，直接写入到文件
 			3. udp处的接口应当为一个uchar，所以中间存在从文件到uchar的函数
-			4. 那个处理函数应当有一个wait，如果wait=0说明frag收集齐了，就可以开始往udp发送文件！
+			4. 那个处理函数应当有一个wait，如果wait=0说明frag收集齐了，就可以开始往udp发送文件
 	*/
+	int payload_len = hdr[3] - 32;
 	if(more_frag || frag_offset) {
 		// 处理分片
 		printf("fragment\n");
@@ -178,22 +183,24 @@ void receive_ip(uchar *packet, uint len){
 		fclose(ipfile);
 		if(more_frag == 0) {
 			// 没有更多了，这个数据维护完毕
-			send_transport_udp();
+			send_transport_udp(payload, payload_len);
 		}
 	}
 	else {
-		int payload_len = hdr[3] - 32;
-		printf("---------hello, transport------\n");
+		printf("---------send datagram to transport------\n");
 		FILE *ipfile = fopen(netfile, "w");
 		fwrite(&payload_len, sizeof(payload_len), 1, ipfile); // 记录长度
 		fwrite(payload, sizeof(char), payload_len, ipfile);	////////////////////
 		printf("end!\n");
 		fclose(ipfile);
-		send_transport_udp();
+		send_transport_udp(payload, payload_len);
 	}
 }
 
 void send_transport_udp(uchar *payload, int len){
-
+	// for(int i =0; i< len ; i++)
+	// 	printf("%d\n", payload[i]);
+	printf("-----send ip to transport layer-----\n");
+	receive_udp(payload, len);
 }
 
