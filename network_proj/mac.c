@@ -41,7 +41,7 @@ uint crc32(uchar *string, uint size) // crc32检测，表驱动
 uint assemble(uchar *frame, uchar *payload, int paylen) 
 {
 	// 生成帧，payload为数据，paylen是数据长度，函数返回frame是生成的帧
-	if(paylen < 46 || paylen > 1500) // 保证payload的长度在46~1500之间
+	if(paylen < 64 || paylen > 1518) // 保证payload的长度在46~1500之间
 		return -1;
 	printf("----assemble start!----\n");
 	//generating frame
@@ -68,7 +68,9 @@ void mac_sender(FILE *sendfile, uchar *frame, uint len)
 	// send frame as a file
 	fwrite(&len, sizeof(len), 1, sendfile); // length
 	fwrite(frame, sizeof(char), len, sendfile);
+	fclose(sendfile); //用文件的形式传输
 	printf("-----finish sending frame!-----\n");
+	mac_receiver();
 }
 
 int checkCRC(uchar *crcGet, uchar *crcCal) 
@@ -175,7 +177,6 @@ void process_and_send_frame(int len, uchar *buf){
 		printf("assemble denied: length wrong!\n");
 		return;
 	}
-	FILE *writefile = fopen(ifile, "w"); //
+	FILE *writefile = fopen(ifile, "w"); 
 	mac_sender(writefile, frame, a);
-	fclose(writefile); //用文件的形式传输
 }

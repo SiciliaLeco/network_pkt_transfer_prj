@@ -5,14 +5,15 @@
 #include <string.h>
 
 void receive_udp(uchar *datagram, uint len){
-	thdr header;
-	uchar hdr[4];
 	uchar* data;
 	data = datagram;
 	printf("-----infomation received from ip layer-----\n");
-	for(int i =0; i < len -4; i++)
+	// for(int i =0; i < len -4; i++)
+	// 	printf("%c", data[i]);
+	FILE *ipfile = fopen(netfile, "r");
+	fread(data, sizeof(char), 1700, ipfile);
+	for(int i =0; i < 1700; i++)
 		printf("%c", data[i]);
-	
 }
 void send_udp(uint src_port, uint dst_port, uchar* payload, uint len){
 	printf("-----udp transport-----\n");
@@ -39,6 +40,6 @@ void udp_send_to_ip(char* packet, uint len){
 	struct ipaddr src, dst; // 设定ip地址，这里调用了ip层的结构体
 	src.seg1 = 192;src.seg2 = 168;src.seg3 = 0;src.seg4 = 1;
 	dst.seg1 = 192;dst.seg2 = 168;dst.seg3 = 0;dst.seg4 = 2;
-	uchar buf[200];
+	uchar buf[2000];
 	send_ip(&buf[0], src, dst, 17, packet, len); // 17 ~ udp
 }

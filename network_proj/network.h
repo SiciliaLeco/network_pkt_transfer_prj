@@ -3,7 +3,8 @@
 #define uchar unsigned char
 #define uint unsigned int 
 #define mtu 1500
-#define netfile "toudp1220.txt" 
+#define netfile "toudp1.txt" 
+#define netfragfile "fraginfo.txt"
 
 typedef struct ipaddr { // ip 地址
 	uchar seg1;
