@@ -1,19 +1,21 @@
 #ifndef NETWORK_H_
 #define NETWORK_H_
 #define uchar unsigned char
-#define uint unsigned int 
+#define uint unsigned int
 #define mtu 1500
-#define netfile "toudp1.txt" 
-#define netfragfile "fraginfo.txt"
+#define netfile "test00.txt"
+#define netfragfile "testn00.txt"
 
-typedef struct ipaddr { // ip 地址
+typedef struct ipaddr
+{ // ip 地址
 	uchar seg1;
 	uchar seg2;
 	uchar seg3;
 	uchar seg4;
-}ipaddr;
+} ipaddr;
 
-typedef struct iphdr {
+typedef struct iphdr
+{
 	uchar version;
 	uchar ihl;
 	uchar tos; // type of service
@@ -26,12 +28,12 @@ typedef struct iphdr {
 	struct ipaddr saddr;
 	struct ipaddr daddr;
 	uchar more_frag;
-}iphdr;
+} iphdr;
 
 void send_mac(int len, char *buf);
 // void send_transport_udp(uchar *payload, int len);
 
-void send_ip(uchar *buf, ipaddr srcip, ipaddr dstip, uchar prtcl, uchar *payload, uint len);
+void send_ip(uchar *buf, ipaddr srcip, ipaddr dstip, uchar prtcl, uchar *payload, int len);
 void receive_ip(uchar *packet, uint len); //unpack
 int checksum();
 int verify_ip_checksum();
